@@ -1,0 +1,197 @@
+libraw1394 Release Notes
+
+Version 2.1.2:
+- Fix build with some alternative C libraries and with some older
+  build environments.  No functional changes.
+
+Version 2.1.1:
+- Fix backwards moving cycle timer in isochronous transmit.
+  The problem has been observed with audio I/O on different systems.
+- Fix crash with SIGBUS on SPARC and similar architectures.
+- Fix memory leak in address range mapping response handler.
+- Fix errno reporting to applications which relied on behavior of
+  libraw1394 1.x.
+- Fix errno checking in the dumpiso and sendiso example programs.
+- Minor documentation improvement.
+
+Version 2.1.0:
+- Behavior changes of the backend to firewire-core:
+    - The isochronous reception buffer is now mapped read/writable
+      rather than read-only.  The raw1394 backend already maps the
+      buffer read/writable too.  Note that writing into the buffer
+      will go wrong on architectures without cache-coherent DMA if
+      the CPU and the OHCI write within the same cacheline region,
+      so use this feature with caution.
+    - Decrease memory footprint of IR and IT buffers by avoiding
+      some internal rounding up of the buffer size.
+- New APIs in <libraw1394/raw1394.h>:
+    - raw1394_add_config_rom_descriptor():
+      Add contents to the Configuration ROM of the local node(s).
+      At runtime, this API is only available if running on top of
+      firewire-core.  It could probably also be implemented with
+      the raw1394 kernel driver if anybody cared.
+    - raw1394_remove_config_rom_descriptor():
+      Counterpart to raw1394_add_config_rom_descriptor().
+    - raw1394_read_cycle_timer_and_clock():
+      Like the existing raw1394_read_cycle_timer(), but lets the
+      caller choose between CLOCK_REALTIME (which the former call
+      is always using), CLOCK_MONOTONIC, or CLOCK_MONOTONIC_RAW.
+      For example, this enables libffado's audio streaming to run
+      undisturbed by resets of CLOCK_REALTIME.
+      At runtime, this call requires firewire-core underneath.
+    - raw1394_get_speed():
+      Returns the speed code of the maximum possible transmission
+      speed between a given node and the local node.  This takes
+      maximum speeds of all participating PHYs and the two links
+      into account.  This can be used to configure the speed of
+      isochronous streams.
+      At runtime, this call requires firewire-core underneath.
+    - enum raw1394_iso_speed was extended by
+      RAW1394_ISO_SPEED_800, _1600, and _3200.
+- New APIs in <libraw1394/ieee1394.h>:
+    - Added preprocessor constants
+      L1394_SPEED_BETA, L1394_SPEED_800, _1600, and _3200.
+- testlibraw1394:
+  Added unit tests of the new APIs.
+
+Version 2.0.9:
+- Fix that raw1394_iso_recv_flush() did not have any effect when running
+  on firewire-core alias juju kernel drivers.  Requires kernel 3.4 or
+  later.
+- Remove build-time dependency on linux-headers.  Before, if too old
+  kernel headers were present on the build system, features and fixes
+  would be silently omitted from the build.
+- Remove --with-fw-dir configure switch which is no longer useful.
+- Janitorial fixes.
+
+Version 2.0.8:
+- Configuration ROM access via raw1394_read() is dramatically faster and
+  very robust now.  We read the kernel's Configuration ROM cache instead
+  of the actual register of the FireWire device.
+- Internally retry raw1394_read/write/lock/lock64() after ack-busy
+  response.  Most notably this fixes control of some older Panasonic and
+  Grundig camcorders.
+- small bug fixes
+
+Version 2.0.7:
+- Fix playback to some audio devices based on the DICE chipset.
+
+Version 2.0.6:
+- Bug fixes, notably for FCP and request reception on firewire-core.
+  Note, several of these updates are only built into libraw1394 if
+  linux-headers 2.6.36 or later are present at build time.
+
+Version 2.0.5:
+- Bug fixes, in particular, for isochronous transmission and FFADO project.
+
+Version 2.0.4:
+- Fix build due to incomplete tarball.
+
+Version 2.0.3:
+- various bug fixes, in particular for firewire stack
+
+Version 2.0.2:
+- Fixed license headers on new files introduced in v2.0.0 to be consistent
+  with LGPL v2.1.
+
+Version 2.0.1:
+- Optimized usage of /dev/fw? nodes based upon user permissions.
+- many good bugfixes
+
+Version 2.0.0:
+- added support for new firewire subsystem.
+- removed deprecated isochronous functions.
+
+Version 1.3.0:
+- added raw1394_read_cycle_timer() as used by FFADO project.
+- added support for environment variable RAW1394DEV to override default
+  device node /dev/raw1394.
+- added --with-valgrind to configure script.
+- other optimizations and bugfixes - see ChangeLog.
+
+Version 1.2.1:
+- generate compiler warnings on deprecated functions (legacy isochronous).
+- bugfixes and optimizations.
+
+Version 1.2.0:
+- added constants useful for ARM: transaction and response return codes.
+- added raw1394_bandwidth_modify() and raw1394_channel_modify().
+
+Version 1.1.0:
+- added ability to specify the isochronous receive mode in the new
+  rawiso (raw1394_iso_*) API. Therefore, the signature of 
+  raw1394_iso_recv_init() changed, and likewise, the libtool/.so version
+  numbers changed to reflect a new interface that is not backwards compatible!
+- added raw1394_arm_set_buf() and raw1394_arm_get_buf() functions.
+- added raw1394_new_handle_on_port() to make initialization simpler.
+- make versioning consistent and updated. 1.0.0 was reported by pkg-config in 
+  0.10 series; hence, 1.1.0 in this release.
+- removed outdated, bogus "linking required only" version symbols in 
+  version.c - use pkg-config now.
+- dropped libraw1394.m4 - use pkg-config now.
+- added RPM spec file.
+- deprecate old isochronous API.
+- move API comment documentation to header and reformat header comments as
+  kernel-doc (use linux/scripts/kernel-doc to extract and format them).
+- updated tools/dumpiso and tools/sendiso to new isochronous API.
+
+Version 0.10:
+
+- merged in the rawiso branch
+- add sendiso and dumpiso tools with man files
+- fix wrong error mapping on local transactions in raw1394_errcode_to_errno().
+- added comment headers for most exported functions
+- merged in weihs branch which brings new functionality including address
+  range mapping, reading and writing configROM images, additional bus reset
+  handling, and others.
+
+Version 0.9:
+
+- error reporting reworked to be more C library style; functions affected are
+  mainly raw1394_read(), raw1394_write(), raw1394_lock;
+  Source incompatibility!  Parts need to be adapted in application code, but
+  it's well worth it.
+- the generation number is not unconditionally updated on bus reset in the event
+  loop anymore, the new function raw1394_update_generation() has to be used
+  (unless the default bus reset handler is used) so that transactions won't fail
+- iso handlers used to get the iso header quadlet in host endian, now they get
+  it in big endian like the rest of the packet for consistency
+- testlibraw gets installed now, man page also included
+- (not yet complete) documentation in Docbook format included
+- libraw1394.m4 autoconf macro added
+
+Version 0.8:
+
+- added libraw1394/ieee1394.h with useful defines (especially ack and rcodes)
+- function to query isochronous resource manager ID
+- functions for isochronous sending
+- new raw1394_reset_bus() function to reset the bus
+
+Version 0.7:
+
+- added support for environments where the kernel runs in 64 bit mode whereas
+  user space runs in 32 bit mode
+- fixed lock transaction to actually return the required response; these
+  functions are actually useful now, prototypes for raw1394_start_lock and
+  raw1394_lock changed
+- a void pointer can now be stored as user data with a handle
+
+Version 0.6:
+
+- FCP monitoring added
+- not really libraw1394 news: the subsystem doesn't swap data anymore,
+  everything is to be kept big endian now on all architectures
+
+Version 0.5:
+
+- there are now separate iso handlers for each channel
+
+Version 0.4:
+
+- isochronous receive support
+
+Version 0.3:
+
+- first release of new libraw1394 for new raw1394 driver
+- supports 1394 async reads/writes
+- maintainer: Andreas Bombe <andreas.bombe@munich.netsurf.de>
